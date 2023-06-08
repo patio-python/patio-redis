@@ -74,7 +74,6 @@ class AbstractRedisBroker(AbstractBroker, ABC):
 
     async def _worker(self) -> None:
         methods = list(self.executor.registry)
-        task: RedisTask
 
         while True:
             try:

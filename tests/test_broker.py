@@ -2,7 +2,7 @@ import asyncio
 import os
 import time
 from functools import reduce
-from typing import AsyncGenerator, Union, Any
+from typing import AsyncGenerator, Union, Any, Callable
 import operator
 
 import pytest
@@ -10,7 +10,7 @@ from patio import ThreadPoolExecutor, Registry, NullExecutor
 from patio_redis import RedisBroker
 
 
-rpc = Registry(project="test", strict=True)
+rpc: Registry[Callable[..., Any]] = Registry(project="test", strict=True)
 
 
 @rpc('mul')
