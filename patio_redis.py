@@ -49,13 +49,6 @@ class AbstractRedisBroker(AbstractBroker, ABC):
 
     async def _execute(self, task: RedisTask) -> None:
         async with self.get_redis_connection() as connection:
-            if task["method"] not in self.executor.registry:
-                await connection.rpush(
-                    task["reply_to"] + ":unknown",
-                    self.serializer.pack(LookupError("Not found")),
-                )
-                return
-
             if not await connection.delete(task["reply_to"]):
                 # if task expired do not execute it
                 return
@@ -71,6 +64,8 @@ class AbstractRedisBroker(AbstractBroker, ABC):
                         ),
                     ),
                 )
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
                 await connection.rpush(
                     task["reply_to"] + ":error",
@@ -136,11 +131,7 @@ class AbstractRedisBroker(AbstractBroker, ABC):
             await connection.rpush(func, payload)
 
             result = await connection.blpop(
-                [
-                    reply_to + ":result",
-                    reply_to + ":error",
-                    reply_to + ":unknown",
-                ],
+                [reply_to + ":result", reply_to + ":error"],
                 timeout=timeout,
             )
 
@@ -154,8 +145,6 @@ class AbstractRedisBroker(AbstractBroker, ABC):
                 return py_value
             if str_key.endswith(":error"):
                 raise py_value
-            if str_key.endswith(":unknown"):
-                raise RuntimeError("Method was not found")
 
     @abstractmethod
     async def close_connection(self) -> None:
@@ -245,6 +234,5 @@ class RedisSentinelBroker(AbstractRedisBroker):
 __all__ = (
     "AbstractRedisBroker",
     "RedisBroker",
-    "RedisBrokerBase",
     "RedisSentinelBroker",
 )

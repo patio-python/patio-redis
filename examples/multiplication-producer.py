@@ -1,5 +1,4 @@
 import asyncio
-from aiomisc import timeout
 from patio import NullExecutor, Registry
 from patio_redis import RedisBroker
 
@@ -7,7 +6,6 @@ from patio_redis import RedisBroker
 rpc = Registry(project="test", strict=True)
 
 
-@timeout(10)
 async def main():
     async with NullExecutor(rpc) as executor:
         async with RedisBroker(
