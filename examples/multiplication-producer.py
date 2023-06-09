@@ -1,5 +1,7 @@
 import asyncio
+
 from patio import NullExecutor, Registry
+
 from patio_redis import RedisBroker
 
 
@@ -9,7 +11,7 @@ rpc = Registry(project="test", strict=True)
 async def main():
     async with NullExecutor(rpc) as executor:
         async with RedisBroker(
-            executor, url="redis://127.0.0.1/", max_connections=50
+            executor, url="redis://127.0.0.1/", max_connections=50,
         ) as broker:
             for i in range(50):
                 print(

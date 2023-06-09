@@ -1,29 +1,30 @@
 import asyncio
+import operator
 import os
 import time
 from functools import reduce
-from typing import AsyncGenerator, Union, Any, Callable
-import operator
+from typing import Any, AsyncGenerator, Callable, Union
 
 import pytest
-from patio import ThreadPoolExecutor, Registry, NullExecutor
+from patio import NullExecutor, Registry, ThreadPoolExecutor
+
 from patio_redis import RedisBroker
 
 
 rpc: Registry[Callable[..., Any]] = Registry(project="test", strict=True)
 
 
-@rpc('mul')
+@rpc("mul")
 def mul(*args: Union[int, float]) -> Union[int, float]:
     return reduce(operator.mul, args)
 
 
-@rpc('div')
+@rpc("div")
 def div(*args: Union[int, float]) -> Union[int, float]:
     return reduce(operator.truediv, args)
 
 
-@rpc('sleeper')
+@rpc("sleeper")
 def sleeper(interval: int) -> None:
     return time.sleep(interval)
 
@@ -34,12 +35,12 @@ async def thread_executor() -> AsyncGenerator[Any, ThreadPoolExecutor]:
         yield executor
 
 
-REDIS_URL = os.getenv('REDIS_URL', "redis://127.0.0.1:6379/")
+REDIS_URL = os.getenv("REDIS_URL", "redis://127.0.0.1:6379/")
 
 
 async def test_simple(thread_executor: ThreadPoolExecutor):
     async with RedisBroker(
-        thread_executor, url=REDIS_URL, max_connections=10
+        thread_executor, url=REDIS_URL, max_connections=10,
     ) as broker:
         assert await broker.call(mul, 1, 2, 3, 4, 5) == 120
 
@@ -52,19 +53,19 @@ async def test_simple(thread_executor: ThreadPoolExecutor):
 
 async def test_simple_split(thread_executor: ThreadPoolExecutor):
     async with RedisBroker(
-        thread_executor, url=REDIS_URL, max_connections=10
+        thread_executor, url=REDIS_URL, max_connections=10,
     ):
         async with NullExecutor(
-            Registry(project="test", strict=True)
+            Registry(project="test", strict=True),
         ) as executor:
             async with RedisBroker(
-                executor, url=REDIS_URL, max_connections=10
+                executor, url=REDIS_URL, max_connections=10,
             ) as producer:
 
-                assert await producer.call('mul', 1, 2, 3, 4, 5) == 120
+                assert await producer.call("mul", 1, 2, 3, 4, 5) == 120
 
                 with pytest.raises(ZeroDivisionError):
-                    assert await producer.call('div', 1, 2, 3, 4, 0)
+                    assert await producer.call("div", 1, 2, 3, 4, 0)
 
                 with pytest.raises(asyncio.TimeoutError):
-                    assert await producer.call('sleeper', 2, timeout=1)
+                    assert await producer.call("sleeper", 2, timeout=1)
